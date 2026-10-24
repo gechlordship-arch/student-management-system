@@ -1,0 +1,16 @@
+# Normalize all text files to LF in the repository
+* text=auto eol=lf
+
+# Explicit binary files (no line-ending conversion)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+
+# Windows-only files keep CRLF if ever added
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
