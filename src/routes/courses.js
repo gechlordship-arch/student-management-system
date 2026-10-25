@@ -3,6 +3,7 @@ const { createCourse, listCourses, getCourse, updateCourse, deleteCourse } = req
 const { markAttendance, getCourseAttendance } = require('../controllers/attendanceController');
 const { createAssessment, listAssessments, getCourseGradebook } = require('../controllers/gradeController');
 const { authenticate, requireRole } = require('../middleware/auth');
+const { exportCourseGradesCSV } = require('../controllers/reportController');
 const { requireCourseTeacher, requireCourseAccess } = require('../middleware/courseAccess');
 
 router.use(authenticate);
@@ -42,7 +43,13 @@ router.get(
   requireCourseTeacher,
   getCourseGradebook
 );
-
+// EXPORT CSV
+router.get(
+  '/:courseId/grades/csv',
+  requireRole('admin', 'teacher'),
+  requireCourseTeacher,
+  exportCourseGradesCSV
+);
 // Course CRUD
 router.post('/',      requireRole('admin'),                       createCourse);
 router.get('/',       requireRole('admin', 'teacher', 'student'),  listCourses);
