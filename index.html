@@ -1,273 +1,593 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Student Management System</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School Management System</title>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #eef2f5; margin: 0; }
-    .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 800px; margin: auto; }
-    input, button { padding: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; border-radius: 6px; border: 1px solid #ccc; font-size: 16px;}
-    button { background: #0056b3; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.2s;}
-    button:hover { background: #004494; }
-    .btn-green { background: #28a745; } .btn-green:hover { background: #218838; }
-    .btn-red { background: #dc3545; } .btn-red:hover { background: #c82333; }
-    .btn-small { width: auto; padding: 8px 15px; margin: 0; }
+    :root { --primary: #4f46e5; --primary-hover: #4338ca; --bg: #f3f4f6; --card: #ffffff; --text: #1f2937; --border: #e5e7eb; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 20px; }
     
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 25px; }
-    th, td { border: 1px solid #e0e0e0; padding: 12px; text-align: left; }
-    th { background: #f8f9fa; color: #333; }
-    tr:nth-child(even) { background: #fdfdfd; }
+    /* Login Screen */
+    #login-box { max-width: 400px; margin: 10vh auto; background: var(--card); padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+    #login-box h2 { text-align: center; margin-bottom: 20px; color: var(--primary); }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
+    input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; }
+    input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+    button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    button:hover { background: var(--primary-hover); }
+    .btn-danger { background: #ef4444; } .btn-danger:hover { background: #dc2626; }
+    .btn-success { background: #10b981; } .btn-success:hover { background: #059669; }
+
+    /* Dashboard Layout */
+    #dashboard { max-width: 1200px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+    .header h1 { font-size: 24px; color: var(--primary); }
+    .role-badge { background: #e0e7ff; color: #3730a3; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; margin-left: 10px; }
+    .logout-btn { width: auto; padding: 8px 16px; font-size: 14px; }
+
+    /* Stats Row (Admin) */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
+    .stat-card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); text-align: center; border-left: 4px solid var(--primary); }
+    .stat-card h3 { font-size: 32px; color: var(--primary); margin-bottom: 5px; }
+    .stat-card p { color: #6b7280; font-weight: 600; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; }
+    .tab { padding: 10px 20px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; color: #6b7280; transition: 0.2s; }
+    .tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    /* Panels & Content */
+    .panel { background: var(--card); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 768px) { .grid-2, .stats-row { grid-template-columns: 1fr; } }
     
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: #f9fafb; font-weight: 600; color: #4b5563; }
+    tr:hover { background: #f9fafb; }
+
+    /* Alerts */
+    .alert { padding: 12px; border-radius: 6px; margin-bottom: 15px; font-weight: 600; display: none; }
+    .alert.error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    .alert.success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+
+    /* Dynamic Lists (Teacher) */
+    .student-list { margin-top: 15px; border: 1px solid var(--border); border-radius: 8px; }
+    .student-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); }
+    .student-item:last-child { border-bottom: none; }
+    .radio-group { display: flex; gap: 10px; }
+    .radio-group label { display: flex; align-items: center; gap: 5px; font-weight: normal; cursor: pointer; }
+
+    /* Progress Bar (Student) */
+    .progress-bar { width: 100%; background: #e5e7eb; border-radius: 10px; height: 10px; margin-top: 5px; }
+    .progress-fill { height: 100%; border-radius: 10px; background: #10b981; }
+
     .hidden { display: none !important; }
-    h2, h3 { color: #333; margin-top: 0; }
-    .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
-    .error-text { color: #dc3545; text-align: center; font-weight: bold; }
-    .badge { background: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-size: 12px; text-transform: uppercase; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <!-- LOGIN SECTION -->
-  <div class="card" id="login-box">
-    <h2 style="text-align: center;">School Portal Login</h2>
-    <p style="text-align: center; color: #666; font-size: 14px;">Try logging in as Admin, Bob (Teacher), or Alice (Student)</p>
-    <input type="email" id="email" placeholder="Email" value="admin@school.test">
-    <input type="password" id="password" placeholder="Password" value="Admin123!">
-    <button onclick="login()">Log In</button>
-    <p id="error-msg" class="error-text hidden"></p>
+  <!-- LOGIN -->
+  <div id="login-box">
+    <h2>School Portal</h2>
+    <div id="login-alert" class="alert error"></div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="email" value="admin@school.test">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" value="Admin123!">
+    </div>
+    <button onclick="login()">Sign In</button>
   </div>
 
-  <!-- DASHBOARD SECTION -->
-  <div class="card hidden" id="dashboard">
-    <div class="header-bar">
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="hidden">
+    <div class="header">
       <div>
-        <h2 id="welcome-text">Welcome</h2>
-        <span id="role-badge" class="badge">role</span>
+        <h1 id="welcome-text">Dashboard</h1>
+        <span id="role-badge" class="role-badge">Role</span>
       </div>
-      <button class="btn-red btn-small" onclick="logout()">Log Out</button>
+      <button class="btn-danger logout-btn" onclick="logout()">Log Out</button>
     </div>
 
+    <!-- ================= ADMIN VIEW ================= -->
     <div id="admin-view" class="hidden">
-      <h3>All Students</h3>
-      <table id="admin-students-table">
-        <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Student No.</th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <h3>All Courses</h3>
-      <table id="admin-courses-table">
-        <thead><tr><th>Code</th><th>Course Name</th><th>Teacher</th></tr></thead>
-        <tbody></tbody>
-      </table>
+      <div class="stats-row">
+        <div class="stat-card"><h3 id="stat-students">0</h3><p>Total Students</p></div>
+        <div class="stat-card"><h3 id="stat-teachers">0</h3><p>Total Teachers</p></div>
+        <div class="stat-card"><h3 id="stat-courses">0</h3><p>Total Courses</p></div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchAdminTab('students', this)">Manage Students</div>
+        <div class="tab" onclick="switchAdminTab('teachers', this)">Manage Teachers</div>
+        <div class="tab" onclick="switchAdminTab('courses', this)">Manage Courses</div>
+        <div class="tab" onclick="switchAdminTab('enrollments', this)">Enrollments</div>
+      </div>
+
+      <!-- Students Tab -->
+      <div id="admin-tab-students" class="panel">
+        <h3>Create Student</h3>
+        <div id="admin-student-alert" class="alert"></div>
+        <div class="grid-2">
+          <div>
+            <div class="form-group"><label>First Name</label><input type="text" id="s-fname"></div>
+            <div class="form-group"><label>Last Name</label><input type="text" id="s-lname"></div>
+            <div class="form-group"><label>Student Number</label><input type="text" id="s-number" placeholder="S003"></div>
+          </div>
+          <div>
+            <div class="form-group"><label>Email</label><input type="email" id="s-email"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="s-pass"></div>
+            <div class="form-group"><label>Date of Birth</label><input type="date" id="s-dob"></div>
+          </div>
+        </div>
+        <button class="btn-success" onclick="createStudent()">Create Student Account</button>
+        <h3 style="margin-top: 30px;">Existing Students</h3>
+        <table id="admin-students-table"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Student No</th></tr></thead><tbody></tbody></table>
+      </div>
+
+      <!-- Teachers Tab -->
+      <div id="admin-tab-teachers" class="panel hidden">
+        <h3>Create Teacher</h3>
+        <div id="admin-teacher-alert" class="alert"></div>
+        <div class="grid-2">
+          <div>
+            <div class="form-group"><label>First Name</label><input type="text" id="t-fname"></div>
+            <div class="form-group"><label>Last Name</label><input type="text" id="t-lname"></div>
+            <div class="form-group"><label>Employee ID</label><input type="text" id="t-empid" placeholder="T002"></div>
+          </div>
+          <div>
+            <div class="form-group"><label>Email</label><input type="email" id="t-email"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="t-pass"></div>
+            <div class="form-group"><label>Department</label><input type="text" id="t-dept"></div>
+          </div>
+        </div>
+        <button class="btn-success" onclick="createTeacher()">Create Teacher Account</button>
+        <h3 style="margin-top: 30px;">Existing Teachers</h3>
+        <table id="admin-teachers-table"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Dept</th></tr></thead><tbody></tbody></table>
+      </div>
+
+      <!-- Courses Tab -->
+      <div id="admin-tab-courses" class="panel hidden">
+        <h3>Create Course</h3>
+        <div id="admin-course-alert" class="alert"></div>
+        <div class="grid-2">
+          <div>
+            <div class="form-group"><label>Course Code</label><input type="text" id="c-code" placeholder="ENG101"></div>
+            <div class="form-group"><label>Course Name</label><input type="text" id="c-name"></div>
+          </div>
+          <div>
+            <div class="form-group"><label>Credits</label><input type="number" id="c-credits" value="3"></div>
+            <div class="form-group"><label>Assign Teacher</label><select id="c-teacher-select"></select></div>
+          </div>
+        </div>
+        <button class="btn-success" onclick="createCourse()">Create Course</button>
+        <h3 style="margin-top: 30px;">Existing Courses</h3>
+        <table id="admin-courses-table"><thead><tr><th>Code</th><th>Name</th><th>Teacher</th></tr></thead><tbody></tbody></table>
+      </div>
+
+      <!-- Enrollments Tab -->
+      <div id="admin-tab-enrollments" class="panel hidden">
+        <h3>Enroll Student in Course</h3>
+        <div id="admin-enroll-alert" class="alert"></div>
+        <div class="grid-2">
+          <div class="form-group"><label>Select Student</label><select id="e-student-select"></select></div>
+          <div class="form-group"><label>Select Course</label><select id="e-course-select"></select></div>
+        </div>
+        <button class="btn-success" onclick="enrollStudent()">Enroll Student</button>
+      </div>
     </div>
 
+    <!-- ================= TEACHER VIEW ================= -->
     <div id="teacher-view" class="hidden">
-      <h3>My Courses</h3>
-      <table id="teacher-courses-table">
-        <thead><tr><th>Code</th><th>Course Name</th><th>Credits</th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <h3>Students in My Courses</h3>
-      <table id="teacher-enrollments-table">
-        <thead><tr><th>Course</th><th>Student Name</th><th>Student No.</th></tr></thead>
-        <tbody></tbody>
-      </table>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTeacherTab('attendance', this)">Take Attendance</div>
+        <div class="tab" onclick="switchTeacherTab('assessments', this)">Create Assessment</div>
+        <div class="tab" onclick="switchTeacherTab('grades', this)">Enter Grades</div>
+      </div>
+
+      <!-- Attendance Tab -->
+      <div id="teacher-tab-attendance" class="panel">
+        <h3>Mark Attendance</h3>
+        <div id="teacher-att-alert" class="alert"></div>
+        <div class="grid-2">
+          <div class="form-group"><label>Select Course</label><select id="att-course-select" onchange="loadAttendanceStudents()"></select></div>
+          <div class="form-group"><label>Date</label><input type="date" id="att-date"></div>
+        </div>
+        <div id="attendance-students-container" class="student-list hidden">
+          <!-- Students injected here -->
+        </div>
+        <button id="att-submit-btn" class="btn-success hidden" style="margin-top: 15px;" onclick="submitAttendance()">Submit Attendance</button>
+      </div>
+
+      <!-- Assessments Tab -->
+      <div id="teacher-tab-assessments" class="panel hidden">
+        <h3>Create Assessment</h3>
+        <div id="teacher-assess-alert" class="alert"></div>
+        <div class="grid-2">
+          <div class="form-group"><label>Select Course</label><select id="assess-course-select"></select></div>
+          <div class="form-group"><label>Assessment Name</label><input type="text" id="assess-name" placeholder="Quiz 2"></div>
+          <div class="form-group"><label>Type</label>
+            <select id="assess-type">
+              <option value="quiz">Quiz</option>
+              <option value="assignment">Assignment</option>
+              <option value="midterm">Midterm</option>
+              <option value="final">Final</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Max Score</label><input type="number" id="assess-max" value="100"></div>
+          <div class="form-group"><label>Weight</label><input type="number" id="assess-weight" value="1"></div>
+        </div>
+        <button class="btn-success" onclick="createAssessment()">Create Assessment</button>
+      </div>
+
+      <!-- Grades Tab -->
+      <div id="teacher-tab-grades" class="panel hidden">
+        <h3>Enter Grades</h3>
+        <div id="teacher-grade-alert" class="alert"></div>
+        <div class="grid-2">
+          <div class="form-group"><label>Select Course</label><select id="grade-course-select" onchange="loadCourseAssessments()"></select></div>
+          <div class="form-group"><label>Select Assessment</label><select id="grade-assess-select" onchange="loadGradingStudents()"></select></div>
+        </div>
+        <div id="grading-students-container" class="student-list hidden">
+          <!-- Students injected here -->
+        </div>
+        <button id="grade-submit-btn" class="btn-success hidden" style="margin-top: 15px;" onclick="submitGrades()">Submit Grades</button>
+      </div>
     </div>
 
+    <!-- ================= STUDENT VIEW ================= -->
     <div id="student-view" class="hidden">
-      <h3>My Grades</h3>
-      <div id="grades-container"></div>
-      
-      <h3>My Attendance</h3>
-      <div id="attendance-container"></div>
-
-      <div style="margin-top: 30px; text-align: center;">
-        <button class="btn-green" style="width: 300px;" onclick="downloadPDF()">📄 Download My Report Card (PDF)</button>
+      <div class="grid-2">
+        <div class="panel">
+          <h3>My Attendance Summary</h3>
+          <div id="student-attendance-container" style="margin-top: 15px;"></div>
+        </div>
+        <div class="panel">
+          <h3>My Grades</h3>
+          <div id="student-grades-container" style="margin-top: 15px;"></div>
+          <div style="margin-top: 30px;">
+            <button class="btn-success" onclick="downloadPDF()">📄 Download Report Card (PDF)</button>
+          </div>
+        </div>
       </div>
     </div>
 
   </div>
 
   <script>
+    const API = 'http://localhost:3000/api';
     let token = null;
-    let currentUser = null;
-    const API_URL = 'http://localhost:3000/api';
+    let user = null;
+    
+    // Global Data Cache
+    let adminData = { students: [], teachers: [], courses: [] };
+    let teacherData = { courses: [], enrollments: [] };
 
+    // === AUTHENTICATION ===
     async function login() {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      const errorMsg = document.getElementById('error-msg');
-
+      const alert = document.getElementById('login-alert');
+      
       try {
-        const res = await fetch(`${API_URL}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const res = await fetch(`${API}/auth/login`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
-
         const data = await res.json();
         
-        if (res.ok) {
-          token = data.token;
-          currentUser = data.user;
-          
-          // Fetch profileId for students/teachers
-          if (currentUser.role !== 'admin') {
-            const meRes = await fetch(`${API_URL}/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
-            // We actually don't need /me if we just use the ID from the DB, 
-            // but the token contains the profileId! We can decode it or just fetch data.
-            // We will rely on the backend to filter data based on the token.
-          }
-
-          document.getElementById('login-box').classList.add('hidden');
-          document.getElementById('dashboard').classList.remove('hidden');
-          errorMsg.classList.add('hidden');
-          
-          document.getElementById('welcome-text').innerText = `Welcome, ${currentUser.firstName} ${currentUser.lastName}`;
-          document.getElementById('role-badge').innerText = currentUser.role;
-
-          renderDashboard();
-        } else {
-          errorMsg.innerText = data.error || "Login failed";
-          errorMsg.classList.remove('hidden');
-        }
+        if (!res.ok) throw new Error(data.error);
+        
+        token = data.token;
+        user = data.user;
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        user.profileId = payload.profileId; // Student/Teacher DB ID
+        
+        document.getElementById('login-box').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('welcome-text').innerText = `Welcome, ${user.firstName} ${user.lastName}`;
+        document.getElementById('role-badge').innerText = user.role;
+        
+        initDashboard();
       } catch (err) {
-        errorMsg.innerText = "Cannot connect to server. Is npm run dev running?";
-        errorMsg.classList.remove('hidden');
+        alert.innerText = err.message;
+        alert.style.display = 'block';
       }
     }
 
-    function renderDashboard() {
-      document.getElementById('admin-view').classList.add('hidden');
-      document.getElementById('teacher-view').classList.add('hidden');
-      document.getElementById('student-view').classList.add('hidden');
+    function logout() { location.reload(); }
 
-      if (currentUser.role === 'admin') {
+    // === DASHBOARD ROUTING ===
+    function initDashboard() {
+      ['admin-view', 'teacher-view', 'student-view'].forEach(id => document.getElementById(id).classList.add('hidden'));
+      
+      if (user.role === 'admin') {
         document.getElementById('admin-view').classList.remove('hidden');
         fetchAdminData();
-      } else if (currentUser.role === 'teacher') {
+      } else if (user.role === 'teacher') {
         document.getElementById('teacher-view').classList.remove('hidden');
         fetchTeacherData();
-      } else if (currentUser.role === 'student') {
+        document.getElementById('att-date').valueAsDate = new Date();
+      } else if (user.role === 'student') {
         document.getElementById('student-view').classList.remove('hidden');
         fetchStudentData();
       }
     }
 
-    // --- ADMIN LOGIC ---
+    function switchAdminTab(tabName, el) {
+      document.querySelectorAll('#admin-view .tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      ['students', 'teachers', 'courses', 'enrollments'].forEach(t => document.getElementById(`admin-tab-${t}`).classList.add('hidden'));
+      document.getElementById(`admin-tab-${tabName}`).classList.remove('hidden');
+    }
+
+    function switchTeacherTab(tabName, el) {
+      document.querySelectorAll('#teacher-view .tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      ['attendance', 'assessments', 'grades'].forEach(t => document.getElementById(`teacher-tab-${t}`).classList.add('hidden'));
+      document.getElementById(`teacher-tab-${tabName}`).classList.remove('hidden');
+    }
+
+    function showAlert(containerId, msg, isSuccess) {
+      const el = document.getElementById(containerId);
+      el.innerText = msg;
+      el.className = `alert ${isSuccess ? 'success' : 'error'}`;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 4000);
+    }
+
+    // ==========================================
+    //               ADMIN LOGIC
+    // ==========================================
     async function fetchAdminData() {
       const headers = { 'Authorization': `Bearer ${token}` };
-      
-      const [studentsRes, coursesRes] = await Promise.all([
-        fetch(`${API_URL}/students`, { headers }),
-        fetch(`${API_URL}/courses`, { headers })
+      const [sRes, tRes, cRes] = await Promise.all([
+        fetch(`${API}/students`, { headers }), fetch(`${API}/teachers`, { headers }), fetch(`${API}/courses`, { headers })
       ]);
+      
+      adminData.students = await sRes.json();
+      adminData.teachers = await tRes.json();
+      adminData.courses = await cRes.json();
 
-      const students = await studentsRes.json();
-      const courses = await coursesRes.json();
+      // Stats
+      document.getElementById('stat-students').innerText = adminData.students.length;
+      document.getElementById('stat-teachers').innerText = adminData.teachers.length;
+      document.getElementById('stat-courses').innerText = adminData.courses.length;
 
-      const sBody = document.querySelector('#admin-students-table tbody');
-      sBody.innerHTML = students.map(s => `<tr><td>${s.id}</td><td>${s.first_name} ${s.last_name}</td><td>${s.email}</td><td>${s.student_number}</td></tr>`).join('');
+      // Tables
+      document.querySelector('#admin-students-table tbody').innerHTML = adminData.students.map(s => 
+        `<tr><td>${s.id}</td><td>${s.first_name} ${s.last_name}</td><td>${s.email}</td><td>${s.student_number}</td></tr>`).join('');
+        
+      document.querySelector('#admin-teachers-table tbody').innerHTML = adminData.teachers.map(t => 
+        `<tr><td>${t.id}</td><td>${t.first_name} ${t.last_name}</td><td>${t.email}</td><td>${t.department || '-'}</td></tr>`).join('');
+        
+      document.querySelector('#admin-courses-table tbody').innerHTML = adminData.courses.map(c => 
+        `<tr><td>${c.course_code}</td><td>${c.name}</td><td>${c.teacher_first ? c.teacher_first + ' ' + c.teacher_last : 'Unassigned'}</td></tr>`).join('');
 
-      const cBody = document.querySelector('#admin-courses-table tbody');
-      cBody.innerHTML = courses.map(c => `<tr><td>${c.course_code}</td><td>${c.name}</td><td>${c.teacher_first ? c.teacher_first + ' ' + c.teacher_last : 'Unassigned'}</td></tr>`).join('');
+      // Populate Dropdowns
+      document.getElementById('c-teacher-select').innerHTML = '<option value="">-- No Teacher --</option>' + 
+        adminData.teachers.map(t => `<option value="${t.id}">${t.first_name} ${t.last_name}</option>`).join('');
+        
+      document.getElementById('e-student-select').innerHTML = adminData.students.map(s => 
+        `<option value="${s.id}">${s.first_name} ${s.last_name} (${s.student_number})</option>`).join('');
+        
+      document.getElementById('e-course-select').innerHTML = adminData.courses.map(c => 
+        `<option value="${c.id}">${c.course_code} - ${c.name}</option>`).join('');
     }
 
-    // --- TEACHER LOGIC ---
+    async function createStudent() {
+      const payload = {
+        firstName: document.getElementById('s-fname').value, lastName: document.getElementById('s-lname').value,
+        studentNumber: document.getElementById('s-number').value, email: document.getElementById('s-email').value,
+        password: document.getElementById('s-pass').value, dateOfBirth: document.getElementById('s-dob').value || null
+      };
+      const res = await fetch(`${API}/students`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (res.ok) { showAlert('admin-student-alert', 'Student created!', true); fetchAdminData(); } 
+      else showAlert('admin-student-alert', data.error, false);
+    }
+
+    async function createTeacher() {
+      const payload = {
+        firstName: document.getElementById('t-fname').value, lastName: document.getElementById('t-lname').value,
+        employeeId: document.getElementById('t-empid').value, email: document.getElementById('t-email').value,
+        password: document.getElementById('t-pass').value, department: document.getElementById('t-dept').value
+      };
+      const res = await fetch(`${API}/teachers`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (res.ok) { showAlert('admin-teacher-alert', 'Teacher created!', true); fetchAdminData(); } 
+      else showAlert('admin-teacher-alert', data.error, false);
+    }
+
+    async function createCourse() {
+      const payload = {
+        courseCode: document.getElementById('c-code').value, name: document.getElementById('c-name').value,
+        credits: parseInt(document.getElementById('c-credits').value), teacherId: document.getElementById('c-teacher-select').value || null
+      };
+      const res = await fetch(`${API}/courses`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (res.ok) { showAlert('admin-course-alert', 'Course created!', true); fetchAdminData(); } 
+      else showAlert('admin-course-alert', data.error, false);
+    }
+
+    async function enrollStudent() {
+      const payload = { studentId: document.getElementById('e-student-select').value, courseId: document.getElementById('e-course-select').value };
+      const res = await fetch(`${API}/enrollments`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (res.ok) showAlert('admin-enroll-alert', 'Student enrolled successfully!', true); 
+      else showAlert('admin-enroll-alert', data.error, false);
+    }
+
+    // ==========================================
+    //              TEACHER LOGIC
+    // ==========================================
     async function fetchTeacherData() {
       const headers = { 'Authorization': `Bearer ${token}` };
+      const cRes = await fetch(`${API}/courses`, { headers });
+      const eRes = await fetch(`${API}/enrollments`, { headers });
       
-      // 1. Fetch Teacher's Courses
-      const coursesRes = await fetch(`${API_URL}/courses`, { headers });
-      const courses = await coursesRes.json();
-      
-      const cBody = document.querySelector('#teacher-courses-table tbody');
-      cBody.innerHTML = courses.map(c => `<tr><td>${c.course_code}</td><td>${c.name}</td><td>${c.credits}</td></tr>`).join('');
+      teacherData.courses = await cRes.json();
+      teacherData.enrollments = await eRes.json();
 
-      // 2. Fetch Enrollments (students in teacher's courses)
-      const enrollRes = await fetch(`${API_URL}/enrollments`, { headers });
-      const enrollments = await enrollRes.json();
-
-      const eBody = document.querySelector('#teacher-enrollments-table tbody');
-      eBody.innerHTML = enrollments.map(e => `<tr><td>${e.course_code}</td><td>${e.student_first} ${e.student_last}</td><td>${e.student_number}</td></tr>`).join('');
-      if(enrollments.length === 0) eBody.innerHTML = '<tr><td colspan="3">No students enrolled yet.</td></tr>';
+      // Populate course dropdowns
+      const courseOptions = teacherData.courses.map(c => `<option value="${c.id}">${c.course_code} - ${c.name}</option>`).join('');
+      document.getElementById('att-course-select').innerHTML = courseOptions;
+      document.getElementById('assess-course-select').innerHTML = courseOptions;
+      document.getElementById('grade-course-select').innerHTML = courseOptions;
     }
 
-    // --- STUDENT LOGIC ---
+    function loadAttendanceStudents() {
+      const courseId = document.getElementById('att-course-select').value;
+      if (!courseId) return;
+      const students = teacherData.enrollments.filter(e => e.course_id == courseId);
+      
+      const container = document.getElementById('attendance-students-container');
+      container.innerHTML = students.map(s => `
+        <div class="student-item">
+          <span>${s.student_first} ${s.student_last} (${s.student_number})</span>
+          <div class="radio-group">
+            <label><input type="radio" name="att_${s.student_id}" value="present" checked> Present</label>
+            <label><input type="radio" name="att_${s.student_id}" value="absent"> Absent</label>
+            <label><input type="radio" name="att_${s.student_id}" value="late"> Late</label>
+          </div>
+        </div>
+      `).join('');
+      container.classList.remove('hidden');
+      document.getElementById('att-submit-btn').classList.remove('hidden');
+    }
+
+    async function submitAttendance() {
+      const courseId = document.getElementById('att-course-select').value;
+      const date = document.getElementById('att-date').value;
+      const records = [];
+      
+      document.querySelectorAll('#attendance-students-container .student-item').forEach(item => {
+        const studentId = parseInt(item.querySelector('input').name.split('_')[1]);
+        const status = item.querySelector('input:checked').value;
+        records.push({ studentId, status });
+      });
+
+      const res = await fetch(`${API}/courses/${courseId}/attendance`, {
+        method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, records })
+      });
+      if (res.ok) showAlert('teacher-att-alert', 'Attendance saved successfully!', true);
+      else showAlert('teacher-att-alert', 'Failed to save attendance', false);
+    }
+
+    async function createAssessment() {
+      const courseId = document.getElementById('assess-course-select').value;
+      const payload = {
+        name: document.getElementById('assess-name').value, assessmentType: document.getElementById('assess-type').value,
+        maxScore: parseFloat(document.getElementById('assess-max').value), weight: parseFloat(document.getElementById('assess-weight').value)
+      };
+      const res = await fetch(`${API}/courses/${courseId}/assessments`, {
+        method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) showAlert('teacher-assess-alert', 'Assessment created!', true);
+      else showAlert('teacher-assess-alert', 'Failed to create assessment', false);
+    }
+
+    async function loadCourseAssessments() {
+      const courseId = document.getElementById('grade-course-select').value;
+      const res = await fetch(`${API}/courses/${courseId}/assessments`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const assessments = await res.json();
+      
+      document.getElementById('grade-assess-select').innerHTML = assessments.map(a => 
+        `<option value="${a.id}">${a.name} (Max: ${a.max_score})</option>`).join('');
+      document.getElementById('grading-students-container').classList.add('hidden');
+      document.getElementById('grade-submit-btn').classList.add('hidden');
+    }
+
+    function loadGradingStudents() {
+      const courseId = document.getElementById('grade-course-select').value;
+      const students = teacherData.enrollments.filter(e => e.course_id == courseId);
+      
+      const container = document.getElementById('grading-students-container');
+      container.innerHTML = students.map(s => `
+        <div class="student-item">
+          <span>${s.student_first} ${s.student_last}</span>
+          <input type="number" id="grade_${s.student_id}" placeholder="Score" style="width: 100px;">
+        </div>
+      `).join('');
+      container.classList.remove('hidden');
+      document.getElementById('grade-submit-btn').classList.remove('hidden');
+    }
+
+    async function submitGrades() {
+      const assessId = document.getElementById('grade-assess-select').value;
+      const records = [];
+      document.querySelectorAll('#grading-students-container .student-item').forEach(item => {
+        const studentId = parseInt(item.querySelector('input').id.split('_')[1]);
+        const score = item.querySelector('input').value;
+        if (score !== '') records.push({ studentId, score: parseFloat(score) });
+      });
+
+      const res = await fetch(`${API}/assessments/${assessId}/grades`, {
+        method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records })
+      });
+      if (res.ok) showAlert('teacher-grade-alert', 'Grades saved!', true);
+      else showAlert('teacher-grade-alert', 'Error saving grades', false);
+    }
+
+    // ==========================================
+    //              STUDENT LOGIC
+    // ==========================================
     async function fetchStudentData() {
       const headers = { 'Authorization': `Bearer ${token}` };
       
-      // The backend uses the token to identify the student, 
-      // but our endpoint requires the student's DB ID (profileId). 
-      // We can grab it by decoding the JWT token, but let's just fetch her specific data.
-      // Wait, our route is /students/:id/grades. 
-      // To make this easy, let's decode the JWT to get the profileId.
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const studentId = payload.profileId;
+      // Fetch Grades
+      const gRes = await fetch(`${API}/students/${user.profileId}/grades`, { headers });
+      const grades = await gRes.json();
+      document.getElementById('student-grades-container').innerHTML = grades.courses.map(c => `
+        <div style="margin-bottom: 15px;">
+          <strong>${c.courseCode} - ${c.courseName}</strong>
+          <div style="color: var(--primary); font-size: 18px; font-weight: bold; margin-top: 5px;">
+            ${c.weightedPercent !== null ? c.weightedPercent + '%' : 'No grades yet'}
+          </div>
+        </div>
+      `).join('');
 
-      // 1. Fetch Grades
-      const gradesRes = await fetch(`${API_URL}/students/${studentId}/grades`, { headers });
-      const grades = await gradesRes.json();
+      // Fetch Attendance
+      const aRes = await fetch(`${API}/students/${user.profileId}/attendance`, { headers });
+      const att = await aRes.json();
       
-      let gradesHtml = '';
-      grades.courses.forEach(c => {
-        gradesHtml += `<div style="margin-bottom:15px; padding:15px; border:1px solid #ddd; border-radius:6px;">
-          <h4>${c.courseCode} - ${c.courseName} <span style="float:right; color:#0056b3;">Overall: ${c.weightedPercent !== null ? c.weightedPercent + '%' : 'N/A'}</span></h4>
-          <ul style="margin:5px 0; padding-left:20px;">`;
-        c.assessments.forEach(a => {
-          gradesHtml += `<li>${a.name} (${a.type}): ${a.score !== null ? a.score : '-'} / ${a.maxScore} (Weight: ${a.weight})</li>`;
-        });
-        gradesHtml += `</ul></div>`;
+      let html = '';
+      Object.values(att.summary).forEach(s => {
+        const pct = (s.attendanceRate * 100).toFixed(1);
+        html += `
+          <div style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <strong>${s.courseName}</strong>
+              <span>${pct}%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%"></div></div>
+          </div>
+        `;
       });
-      document.getElementById('grades-container').innerHTML = gradesHtml || '<p>No grades yet.</p>';
-
-      // 2. Fetch Attendance
-      const attRes = await fetch(`${API_URL}/students/${studentId}/attendance`, { headers });
-      const attendance = await attRes.json();
-      
-      let attHtml = '<table><thead><tr><th>Course</th><th>Present</th><th>Absent</th><th>Late</th><th>Total</th><th>Rate</th></tr></thead><tbody>';
-      Object.values(attendance.summary).forEach(s => {
-        attHtml += `<tr>
-          <td>${s.courseName}</td>
-          <td style="color:green">${s.present}</td>
-          <td style="color:red">${s.absent}</td>
-          <td style="color:orange">${s.late}</td>
-          <td>${s.total}</td>
-          <td><strong>${(s.attendanceRate * 100).toFixed(1)}%</strong></td>
-        </tr>`;
-      });
-      attHtml += '</tbody></table>';
-      document.getElementById('attendance-container').innerHTML = attHtml || '<p>No attendance yet.</p>';
+      document.getElementById('student-attendance-container').innerHTML = html || '<p>No attendance data.</p>';
     }
 
-    // --- PDF DOWNLOAD LOGIC ---
     async function downloadPDF() {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const studentId = payload.profileId;
-
-        const res = await fetch(`${API_URL}/students/${studentId}/report-card`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (!res.ok) throw new Error('Failed to download');
-        
+      const res = await fetch(`${API}/students/${user.profileId}/report-card`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) {
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `report-card-${currentUser.firstName}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      } catch (err) {
-        alert("Error downloading PDF: Make sure server is running.");
+        a.href = url; a.download = `report-card-${user.firstName}.pdf`;
+        document.body.appendChild(a); a.click(); a.remove();
+      } else {
+        alert('Failed to download PDF');
       }
-    }
-
-    function logout() {
-      token = null;
-      currentUser = null;
-      document.getElementById('dashboard').classList.add('hidden');
-      document.getElementById('login-box').classList.remove('hidden');
     }
   </script>
 </body>
