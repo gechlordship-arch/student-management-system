@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import toast from 'react-hot-toast';
 
 export default function TeacherDashboard() {
   const [activeTab, setActiveTab] = useState('attendance');
   const [courses, setCourses] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
+  const [notices, setNotices] = useState([]); // <-- NOTICES STATE
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
 
-  const [successMsg, setSuccessMsg] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Attendance
@@ -30,29 +30,31 @@ export default function TeacherDashboard() {
 
   const fetchData = async () => {
     try {
-      const [cRes, eRes] = await Promise.all([api.get('/courses'), api.get('/enrollments')]);
+      const [cRes, eRes, nRes] = await Promise.all([
+        api.get('/courses'), 
+        api.get('/enrollments'),
+        api.get('/notices') // <-- FETCH NOTICES
+      ]);
       setCourses(cRes.data);
       setEnrollments(eRes.data);
+      setNotices(nRes.data); // <-- SET NOTICES
       if (cRes.data.length > 0) {
         setAttCourse(cRes.data[0].id);
         setAssCourse(cRes.data[0].id);
         setGradeCourse(cRes.data[0].id);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { toast.error('Failed to load data'); }
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  // --- FETCH EXISTING ATTENDANCE WHEN DATE/COURSE CHANGES ---
   useEffect(() => {
     if (activeTab === 'attendance' && attCourse && attDate) {
       const fetchExisting = async () => {
         try {
           const res = await api.get(`/courses/${attCourse}/attendance?date=${attDate}`);
           const existing = {};
-          res.data.records.forEach(r => {
-            if (r.status) existing[r.student_id] = r.status;
-          });
+          res.data.records.forEach(r => { if (r.status) existing[r.student_id] = r.status; });
           setAttRecords(existing);
         } catch (err) { console.error(err); }
       };
@@ -60,7 +62,6 @@ export default function TeacherDashboard() {
     }
   }, [attCourse, attDate, activeTab]);
 
-  // --- FETCH ASSESSMENTS FOR GRADING ---
   useEffect(() => {
     if (activeTab === 'grades' && gradeCourse) {
       const fetchAssessments = async () => {
@@ -75,18 +76,13 @@ export default function TeacherDashboard() {
     }
   }, [gradeCourse, activeTab]);
 
-  // --- FETCH EXISTING GRADES WHEN ASSESSMENT CHANGES ---
   useEffect(() => {
     if (selectedAssessment) {
       const fetchGrades = async () => {
         try {
           const res = await api.get(`/courses/${gradeCourse}/grades`);
           const existing = {};
-          res.data.students.forEach(s => {
-            if (s.grades[selectedAssessment] !== undefined) {
-              existing[s.studentId] = s.grades[selectedAssessment];
-            }
-          });
+          res.data.students.forEach(s => { if (s.grades[selectedAssessment] !== undefined) existing[s.studentId] = s.grades[selectedAssessment]; });
           setGradeRecords(existing);
         } catch (err) { console.error(err); }
       };
@@ -95,18 +91,36 @@ export default function TeacherDashboard() {
   }, [selectedAssessment, gradeCourse]);
 
   const handleLogout = () => { localStorage.clear(); navigate('/'); };
-  const showSuccess = (msg) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(''), 3000); };
 
   const submitAttendance = async (e) => {
-    e.preventDefault(); setLoading(true); setError('');
+    e.preventDefault(); setLoading(true);
     const formatted = Object.keys(attRecords).filter(id => attRecords[id]).map(id => ({ studentId: parseInt(id), status: attRecords[id] }));
-    if (formatted.length === 0) { setError('Mark at least one student.'); setLoading(false); return; }
+    if (formatted.length === 0) { toast.error('Mark at least one student.'); setLoading(false); return; }
     try {
       await api.post(`/courses/${attCourse}/attendance`, { date: attDate, records: formatted });
-      showSuccess('Attendance saved (updated if existed)!');
-    } catch (err) { setError(err.response?.data?.error || 'Failed to save'); } finally { setLoading(false); }
-  
-     const downloadAttendanceCSV = async () => {
+      toast.success('Attendance saved!');
+    } catch (err) { toast.error(err.response?.data?.error || 'Failed to save'); } finally { setLoading(false); }
+  };
+
+  const submitAssessment = async (e) => {
+    e.preventDefault(); setLoading(true);
+    try {
+      await api.post(`/courses/${assCourse}/assessments`, assForm);
+      toast.success('Assessment created!'); setAssForm({ name: '', assessmentType: 'quiz', maxScore: 100, weight: 1 });
+    } catch (err) { toast.error(err.response?.data?.error || 'Failed'); } finally { setLoading(false); }
+  };
+
+  const submitGrades = async (e) => {
+    e.preventDefault(); setLoading(true);
+    const formatted = Object.keys(gradeRecords).filter(id => gradeRecords[id] !== '').map(id => ({ studentId: parseInt(id), score: parseFloat(gradeRecords[id]) }));
+    if (formatted.length === 0) { toast.error('Enter at least one grade.'); setLoading(false); return; }
+    try {
+      await api.post(`/assessments/${selectedAssessment}/grades`, { records: formatted });
+      toast.success('Grades saved!');
+    } catch (err) { toast.error(err.response?.data?.error || 'Failed'); } finally { setLoading(false); }
+  };
+
+  const downloadAttendanceCSV = async () => {
     try {
       const res = await api.get(`/courses/${attCourse}/attendance/csv`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
@@ -116,28 +130,7 @@ export default function TeacherDashboard() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (err) {
-      alert("Failed to download CSV");
-    }
-  };
-  };
-
-  const submitAssessment = async (e) => {
-    e.preventDefault(); setLoading(true); setError('');
-    try {
-      await api.post(`/courses/${assCourse}/assessments`, assForm);
-      showSuccess('Assessment created!'); setAssForm({ name: '', assessmentType: 'quiz', maxScore: 100, weight: 1 });
-    } catch (err) { setError(err.response?.data?.error || 'Failed'); } finally { setLoading(false); }
-  };
-
-  const submitGrades = async (e) => {
-    e.preventDefault(); setLoading(true); setError('');
-    const formatted = Object.keys(gradeRecords).filter(id => gradeRecords[id] !== '').map(id => ({ studentId: parseInt(id), score: parseFloat(gradeRecords[id]) }));
-    if (formatted.length === 0) { setError('Enter at least one grade.'); setLoading(false); return; }
-    try {
-      await api.post(`/assessments/${selectedAssessment}/grades`, { records: formatted });
-      showSuccess('Grades saved (updated if existed)!');
-    } catch (err) { setError(err.response?.data?.error || 'Failed'); } finally { setLoading(false); }
+    } catch (err) { toast.error("Failed to download CSV"); }
   };
 
   const getStudentsForCourse = (courseId) => enrollments.filter(e => e.course_id === parseInt(courseId));
@@ -157,23 +150,38 @@ export default function TeacherDashboard() {
 
       <div className="flex-1 p-8 overflow-y-auto">
         <h1 className="text-3xl font-bold mb-8">{activeTab === 'attendance' ? 'Take Attendance' : activeTab === 'assessments' ? 'Create Assessment' : 'Enter Grades'}</h1>
-        {successMsg && <div className="bg-green-100 text-green-700 p-3 rounded mb-6">{successMsg}</div>}
-        {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-6">{error}</div>}
 
-        {courses.length === 0 ? <div className="bg-white p-6 rounded border">No courses assigned.</div> : (
+        {/* --- NOTICES BANNER HERE --- */}
+        {notices.length > 0 && (
+          <div className="mb-8 space-y-4">
+            {notices.slice(0, 3).map(n => (
+              <div key={n.id} className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded shadow-sm">
+                <h3 className="font-bold text-emerald-800">{n.title}</h3>
+                <p className="text-emerald-700 text-sm mt-1">{n.content}</p>
+                <p className="text-xs text-emerald-600 mt-2">Posted: {new Date(n.created_at).toLocaleDateString()}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {courses.length === 0 ? (
+          <div className="bg-white p-6 rounded border text-gray-500">No courses assigned to you yet.</div>
+        ) : (
           <>
             {activeTab === 'attendance' && (
               <div className="bg-white rounded-xl border p-6">
                 <button onClick={downloadAttendanceCSV} className="mb-6 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition font-medium">
-  📥 Export Attendance to CSV
-</button>
+                  📥 Export Attendance to CSV
+                </button>
                 <form onSubmit={submitAttendance}>
                   <div className="flex gap-4 mb-6">
                     <div className="flex-1"><label className="block text-sm font-medium">Course</label><select value={attCourse} onChange={e => setAttCourse(e.target.value)} className="w-full p-2 border rounded bg-white">{courses.map(c => <option key={c.id} value={c.id}>{c.course_code}</option>)}</select></div>
-                    <div className="flex-1"><label className="block text-sm font-medium">Date (Select to edit past)</label><input type="date" value={attDate} onChange={e => setAttDate(e.target.value)} className="w-full p-2 border rounded" /></div>
+                    <div className="flex-1"><label className="block text-sm font-medium">Date</label><input type="date" value={attDate} onChange={e => setAttDate(e.target.value)} className="w-full p-2 border rounded" /></div>
                   </div>
                   <div className="space-y-3">
-                    {getStudentsForCourse(attCourse).map(s => (
+                    {getStudentsForCourse(attCourse).length === 0 ? (
+                      <p className="text-gray-500">No students enrolled in this course.</p>
+                    ) : getStudentsForCourse(attCourse).map(s => (
                       <div key={s.student_id} className="flex justify-between p-3 bg-gray-50 border rounded">
                         <span>{s.student_first} {s.student_last}</span>
                         <div className="flex gap-4">
@@ -185,7 +193,9 @@ export default function TeacherDashboard() {
                         </div>
                       </div>
                     ))}
-                    <button type="submit" disabled={loading} className="mt-4 bg-emerald-600 text-white px-6 py-2 rounded">{loading ? 'Saving...' : 'Submit Attendance'}</button>
+                    {getStudentsForCourse(attCourse).length > 0 && (
+                      <button type="submit" disabled={loading} className="mt-4 bg-emerald-600 text-white px-6 py-2 rounded disabled:opacity-50">{loading ? 'Saving...' : 'Submit Attendance'}</button>
+                    )}
                   </div>
                 </form>
               </div>
@@ -200,7 +210,7 @@ export default function TeacherDashboard() {
                     <div><label className="block text-sm">Type</label><select value={assForm.assessmentType} onChange={e => setAssForm({...assForm, assessmentType: e.target.value})} className="w-full p-2 border rounded bg-white"><option value="quiz">Quiz</option><option value="midterm">Midterm</option><option value="final">Final</option></select></div>
                     <div><label className="block text-sm">Max Score</label><input type="number" required value={assForm.maxScore} onChange={e => setAssForm({...assForm, maxScore: parseInt(e.target.value)})} className="w-full p-2 border rounded" /></div>
                   </div>
-                  <button type="submit" className="bg-emerald-600 text-white px-6 py-2 rounded">Create</button>
+                  <button type="submit" disabled={loading} className="bg-emerald-600 text-white px-6 py-2 rounded disabled:opacity-50">{loading ? 'Creating...' : 'Create'}</button>
                 </form>
               </div>
             )}
@@ -210,17 +220,21 @@ export default function TeacherDashboard() {
                 <form onSubmit={submitGrades}>
                   <div className="flex gap-4 mb-6">
                     <div className="flex-1"><label className="block text-sm">Course</label><select value={gradeCourse} onChange={e => setGradeCourse(e.target.value)} className="w-full p-2 border rounded bg-white">{courses.map(c => <option key={c.id} value={c.id}>{c.course_code}</option>)}</select></div>
-                    <div className="flex-1"><label className="block text-sm">Assessment (Select to edit)</label><select value={selectedAssessment} onChange={e => setSelectedAssessment(e.target.value)} className="w-full p-2 border rounded bg-white"><option value="">-- Choose --</option>{gradeAssessments.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
+                    <div className="flex-1"><label className="block text-sm">Assessment</label><select value={selectedAssessment} onChange={e => setSelectedAssessment(e.target.value)} className="w-full p-2 border rounded bg-white"><option value="">-- Choose --</option>{gradeAssessments.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
                   </div>
                   {selectedAssessment && (
                     <div className="space-y-3">
-                      {getStudentsForCourse(gradeCourse).map(s => (
+                      {getStudentsForCourse(gradeCourse).length === 0 ? (
+                        <p className="text-gray-500">No students enrolled.</p>
+                      ) : getStudentsForCourse(gradeCourse).map(s => (
                         <div key={s.student_id} className="flex justify-between p-3 bg-gray-50 border rounded">
                           <span>{s.student_first} {s.student_last}</span>
                           <input type="number" step="0.1" placeholder="Score" value={gradeRecords[s.student_id] || ''} onChange={e => setGradeRecords({...gradeRecords, [s.student_id]: e.target.value})} className="w-24 p-2 border rounded text-center" />
                         </div>
                       ))}
-                      <button type="submit" disabled={loading} className="mt-4 bg-emerald-600 text-white px-6 py-2 rounded">{loading ? 'Saving...' : 'Submit Grades'}</button>
+                      {getStudentsForCourse(gradeCourse).length > 0 && (
+                        <button type="submit" disabled={loading} className="mt-4 bg-emerald-600 text-white px-6 py-2 rounded disabled:opacity-50">{loading ? 'Saving...' : 'Submit Grades'}</button>
+                      )}
                     </div>
                   )}
                 </form>
