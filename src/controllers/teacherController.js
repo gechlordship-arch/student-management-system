@@ -56,5 +56,39 @@ const listTeachers = async (req, res) => {
   );
   res.json(rows);
 };
+const updateTeacher = async (req, res) => {
+  const { id } = req.params;
+  const { firstName, lastName, email, employeeId, department } = req.body;
+  
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `UPDATE users SET first_name = COALESCE($1, first_name), last_name = COALESCE($2, last_name), email = COALESCE($3, email)
+       WHERE id = (SELECT user_id FROM teachers WHERE id = $4)`,
+      [firstName, lastName, email, id]
+    );
+    const { rows } = await client.query(
+      `UPDATE teachers SET employee_id = COALESCE($1, employee_id), department = COALESCE($2, department) WHERE id = $3 RETURNING *`,
+      [employeeId, department, id]
+    );
+    await client.query('COMMIT');
+    res.json(rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: 'Failed to update teacher' });
+  } finally {
+    client.release();
+  }
+};
 
-module.exports = { createTeacher, listTeachers };
+const deleteTeacher = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.query(`DELETE FROM users WHERE id = (SELECT user_id FROM teachers WHERE id = $1)`, [id]);
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete teacher' });
+  }
+};
+module.exports = { createTeacher, listTeachers ,updateTeacher, deleteTeacher };
