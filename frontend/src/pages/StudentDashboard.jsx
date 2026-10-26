@@ -7,13 +7,14 @@ export default function StudentDashboard() {
   const [attendance, setAttendance] = useState({});
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user'));
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
     const fetchStudentData = async () => {
       try {
-        // We decode the token to get the student's database ID (profileId)
         const token = localStorage.getItem('token');
+        if (!token) return;
+        
         const payload = JSON.parse(atob(token.split('.')[1]));
         const studentId = payload.profileId;
 
@@ -44,12 +45,10 @@ export default function StudentDashboard() {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const studentId = payload.profileId;
 
-      // Fetch the PDF from our backend
       const res = await api.get(`/students/${studentId}/report-card`, {
-        responseType: 'blob' // Tell Axios to expect a file
+        responseType: 'blob'
       });
 
-      // Create a temporary URL for the file and trigger a download
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -62,26 +61,27 @@ export default function StudentDashboard() {
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-xl font-bold">Loading your profile...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-xl font-bold text-purple-700">Loading your profile...</div>;
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-64 bg-purple-900 text-white flex flex-col">
+      {/* Sidebar - FIXED BACKGROUND COLOR */}
+      <div className="w-64 flex flex-col text-white" style={{ backgroundColor: '#4c1d95' }}>
         <div className="p-6 text-2xl font-bold border-b border-purple-800">Student Portal</div>
-        <div className="p-4 text-sm text-purple-200">
+        
+        <div className="p-4 text-sm text-purple-200 border-b border-purple-800">
           <p className="font-bold text-white text-lg">{user?.firstName} {user?.lastName}</p>
           <p>{user?.email}</p>
         </div>
         
         <div className="flex-1 p-4 mt-4 space-y-2">
-          <div className="bg-purple-800 p-3 rounded text-sm">
+          <div className="bg-purple-800 p-3 rounded text-sm leading-relaxed shadow-inner">
             Welcome to your dashboard. Here you can view your current academic standing and attendance.
           </div>
         </div>
 
         <div className="p-4 border-t border-purple-800 space-y-3">
-          <button onClick={downloadPDF} className="w-full bg-purple-600 hover:bg-purple-500 py-2 rounded transition font-medium shadow-md">
+          <button onClick={downloadPDF} className="w-full bg-purple-600 hover:bg-purple-500 py-2 rounded transition font-medium shadow-md flex justify-center items-center gap-2">
             📄 Download PDF Report
           </button>
           <button onClick={handleLogout} className="w-full bg-red-500 hover:bg-red-600 py-2 rounded transition font-medium shadow-md">
