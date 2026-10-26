@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import ChangePasswordModal from '../components/ChangePasswordModal'; // <-- NEW IMPORT
 
 export default function StudentDashboard() {
   const [grades, setGrades] = useState([]);
   const [attendance, setAttendance] = useState({});
   const [loading, setLoading] = useState(true);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false); // <-- NEW STATE
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -65,7 +67,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar - FIXED BACKGROUND COLOR */}
+      {/* Sidebar */}
       <div className="w-64 flex flex-col text-white" style={{ backgroundColor: '#4c1d95' }}>
         <div className="p-6 text-2xl font-bold border-b border-purple-800">Student Portal</div>
         
@@ -84,6 +86,12 @@ export default function StudentDashboard() {
           <button onClick={downloadPDF} className="w-full bg-purple-600 hover:bg-purple-500 py-2 rounded transition font-medium shadow-md flex justify-center items-center gap-2">
             📄 Download PDF Report
           </button>
+          
+          {/* NEW BUTTON HERE */}
+          <button onClick={() => setIsPasswordModalOpen(true)} className="w-full bg-gray-700 hover:bg-gray-600 py-2 rounded transition font-medium shadow-md">
+            Change Password
+          </button>
+
           <button onClick={handleLogout} className="w-full bg-red-500 hover:bg-red-600 py-2 rounded transition font-medium shadow-md">
             Log Out
           </button>
@@ -175,9 +183,11 @@ export default function StudentDashboard() {
               </div>
             )}
           </div>
-
         </div>
       </div>
+      
+      {/* NEW MODAL HERE */}
+      <ChangePasswordModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} />
     </div>
   );
 }

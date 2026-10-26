@@ -15,6 +15,8 @@ CREATE TABLE users (
     first_name    VARCHAR(100) NOT NULL,
     last_name     VARCHAR(100) NOT NULL,
     is_active     BOOLEAN DEFAULT TRUE,
+    reset_token VARCHAR(255),
+    reset_token_expiry TIMESTAMPTZ,
     created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 

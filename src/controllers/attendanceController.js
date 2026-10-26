@@ -137,5 +137,52 @@ const getStudentAttendance = async (req, res) => {
 
   res.json({ studentId, records: rows, summary });
 };
+const exportCourseAttendanceCSV = async (req, res) => {
+  const { courseId } = req.params;
+  try {
+    const { rows } = await db.query(
+      `SELECT u.first_name, u.last_name, s.student_number, 
+              a.attendance_date, a.status
+       FROM enrollments e
+       JOIN students s ON s.id = e.student_id
+       JOIN users u ON u.id = s.user_id
+       LEFT JOIN attendance a ON a.enrollment_id = e.id
+       WHERE e.course_id = $1
+       ORDER BY u.last_name, u.first_name, a.attendance_date`,
+      [courseId]
+    );
 
-module.exports = { markAttendance, getCourseAttendance, getStudentAttendance };
+    // Group rows by student
+    const students = {};
+    rows.forEach(r => {
+      const key = r.student_number;
+      if (!students[key]) {
+        students[key] = { name: `${r.first_name} ${r.last_name}`, dates: {} };
+      }
+      if (r.attendance_date) {
+        // Convert timestamp to YYYY-MM-DD
+        const dateStr = new Date(r.attendance_date).toISOString().split('T')[0];
+        students[key].dates[dateStr] = r.status;
+      }
+    });
+
+    // Get unique dates for CSV headers
+    const uniqueDates = [...new Set(rows.map(r => r.attendance_date ? new Date(r.attendance_date).toISOString().split('T')[0] : null).filter(Boolean))].sort();
+
+    // Build CSV String
+    let csv = `Student Number,Name,${uniqueDates.join(',')}\n`;
+    Object.keys(students).forEach(sNum => {
+      const s = students[sNum];
+      const rowStatuses = uniqueDates.map(date => s.dates[date] || 'N/A');
+      csv += `"${sNum}","${s.name}","${rowStatuses.join('","')}"\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="attendance-${courseId}.csv"`);
+    res.send(csv);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to export CSV' });
+  }
+};
+module.exports = { markAttendance, getCourseAttendance, getStudentAttendance, exportCourseAttendanceCSV };
