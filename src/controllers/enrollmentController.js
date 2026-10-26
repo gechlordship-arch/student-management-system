@@ -55,9 +55,12 @@ const listEnrollments = async (req, res) => {
   } else {
     query = `
       SELECT e.id, e.course_id, e.status, e.enrolled_at,
-             c.course_code, c.name AS course_name, c.credits
+             c.course_code, c.name AS course_name, c.credits,
+             u.first_name AS teacher_first, u.last_name AS teacher_last
         FROM enrollments e
         JOIN courses c ON c.id = e.course_id
+        LEFT JOIN teachers t ON t.id = c.teacher_id
+        LEFT JOIN users u ON u.id = t.user_id
        WHERE e.student_id = $1
        ORDER BY c.course_code`;
     params = [req.user.profileId];
@@ -67,6 +70,7 @@ const listEnrollments = async (req, res) => {
   res.json(rows);
 };
 
+// Here is the missing function that caused the crash!
 const dropEnrollment = async (req, res) => {
   const { rowCount } = await db.query('DELETE FROM enrollments WHERE id = $1', [req.params.id]);
   if (!rowCount) return res.status(404).json({ error: 'Enrollment not found' });
